@@ -1,4 +1,7 @@
 <resources>
-    <string name="app_name">photoeditor</string>
+    <string name="app_name">Photo Editor</string>
     <string name="open_gallery">Gallery</string>
+    <string name="saveImage">Save</string>
+    <string name="brightness_slider">Brightness</string>
+    <string name="brightness_slider_label">brightness</string>
 </resources>
