@@ -1,7 +1,10 @@
 package com.eriks.photoeditor
 
+import android.Manifest
 import android.app.Activity
+import android.content.ContentValues
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.ImageDecoder
@@ -10,14 +13,19 @@ import android.os.Bundle
 import android.provider.MediaStore
 import android.widget.Button
 import android.widget.ImageView
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.ColorInt
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.toBitmap
 import com.google.android.material.slider.Slider
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var currentImage: ImageView
     private lateinit var pickImageBtn: Button
+    private lateinit var saveImageBtn: Button
     private lateinit var brightnessSl: Slider
     private lateinit var currentBitmap: Bitmap
 
@@ -44,6 +52,26 @@ class MainActivity : AppCompatActivity() {
         pickImageBtn.setOnClickListener {
             pickImage()
         }
+
+        saveImageBtn.setOnClickListener {
+            when {
+                ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE
+                ) ==
+                        PackageManager.PERMISSION_GRANTED -> {
+                    saveToStorage()
+                }
+
+                else -> {
+                    ActivityCompat.requestPermissions(
+                        this,
+                        arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), 0
+                    )
+                }
+            }
+        }
+
         brightnessSl.addOnChangeListener { _, value, _ ->
             redrawPicture(currentBitmap, value.toInt())
         }
@@ -52,6 +80,7 @@ class MainActivity : AppCompatActivity() {
     private fun bindViews() {
         currentImage = findViewById(R.id.ivPhoto)
         pickImageBtn = findViewById(R.id.btnGallery)
+        saveImageBtn = findViewById(R.id.btnSave)
         brightnessSl = findViewById(R.id.slBrightness)
     }
 
@@ -87,6 +116,49 @@ class MainActivity : AppCompatActivity() {
         }
         editedImage.setPixels(pixels, 0, width, 0, 0, width, height)
         currentImage.setImageBitmap(editedImage)
+    }
+
+    private fun saveToStorage() {
+        val bitmap: Bitmap = currentImage.drawable.toBitmap()
+        val timestamp: Long = System.currentTimeMillis()
+        val values = ContentValues()
+        values.put(MediaStore.Images.Media.DISPLAY_NAME, "IMG_$timestamp.jpg")
+        values.put(MediaStore.Images.Media.DATE_TAKEN, timestamp)
+        values.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+        values.put(MediaStore.Images.ImageColumns.WIDTH, bitmap.width)
+        values.put(MediaStore.Images.ImageColumns.HEIGHT, bitmap.height)
+
+        val uri = this@MainActivity.contentResolver.insert(
+            MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values
+        ) ?: return
+
+        contentResolver.openOutputStream(uri).use {
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, it)
+        }
+        Toast.makeText(this, "IMG_$timestamp.jpg saved to device storage", Toast.LENGTH_SHORT).show()
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        when (requestCode) {
+            0 -> {
+                if (grantResults.isNotEmpty() &&
+                    grantResults[0] == PackageManager.PERMISSION_GRANTED
+                ) {
+                    saveImageBtn.callOnClick()
+                } else {
+                    Toast.makeText(this, "Storage permission was declined", Toast.LENGTH_SHORT)
+                        .show()
+                }
+            }
+
+            else -> {
+                super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+            }
+        }
     }
 
     // do not change this function
