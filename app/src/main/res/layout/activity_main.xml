@@ -14,8 +14,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.2"
-        android:contentDescription="fgfgTODO" />
+        app:layout_constraintVertical_bias="0.2" />
 
     <LinearLayout
         android:id="@+id/Llayout"
@@ -52,20 +51,43 @@
         android:value="0"
         android:valueFrom="-250"
         android:valueTo="250"
-        android:layout_marginEnd="30dp"
+        android:layout_marginEnd="15dp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@id/label"
+        app:layout_constraintStart_toEndOf="@id/brLabel"
         app:layout_constraintTop_toBottomOf="@+id/Llayout"
         app:layout_constraintLeft_creator="@android:integer/config_longAnimTime"/>
 
     <TextView
-        android:id="@+id/label"
+        android:id="@+id/brLabel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/brightness_slider_label"
-        android:layout_marginStart="30dp"
+        android:layout_marginStart="15dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintBottom_toBottomOf="@id/slBrightness"
         app:layout_constraintTop_toTopOf="@+id/slBrightness" />
+
+    <com.google.android.material.slider.Slider
+        android:id="@+id/slContrast"
+        android:layout_height="wrap_content"
+        android:layout_width="0dp"
+        android:contentDescription="@string/contrast_slider"
+        android:stepSize="10"
+        android:value="0"
+        android:valueFrom="-250"
+        android:valueTo="250"
+        app:layout_constraintEnd_toEndOf="@+id/slBrightness"
+        app:layout_constraintStart_toStartOf="@+id/slBrightness"
+        app:layout_constraintTop_toBottomOf="@+id/slBrightness"
+        app:layout_constraintLeft_creator="@android:integer/config_longAnimTime"/>
+
+    <TextView
+        android:id="@+id/coLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/contrast_slider_label"
+        app:layout_constraintStart_toStartOf="@+id/brLabel"
+        app:layout_constraintBottom_toBottomOf="@id/slContrast"
+        app:layout_constraintTop_toTopOf="@+id/slContrast" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

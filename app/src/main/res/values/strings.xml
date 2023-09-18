@@ -3,5 +3,7 @@
     <string name="open_gallery">Gallery</string>
     <string name="saveImage">Save</string>
     <string name="brightness_slider">Brightness</string>
+    <string name="contrast_slider">Contrast</string>
     <string name="brightness_slider_label">brightness</string>
+    <string name="contrast_slider_label">contrast</string>
 </resources>
