@@ -7,7 +7,6 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Color
-import android.graphics.ImageDecoder
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.provider.MediaStore
@@ -15,7 +14,6 @@ import android.widget.Button
 import android.widget.ImageView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.ColorInt
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
@@ -27,16 +25,17 @@ class MainActivity : AppCompatActivity() {
     private lateinit var pickImageBtn: Button
     private lateinit var saveImageBtn: Button
     private lateinit var brightnessSl: Slider
+    private lateinit var contrastSl: Slider
     private lateinit var currentBitmap: Bitmap
+    private lateinit var imageProcessor: ImageProcessor
 
     private val activityResultLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == Activity.RESULT_OK) {
-                val photoUri = result.data?.data ?: return@registerForActivityResult
-                currentImage.setImageURI(photoUri)
-                currentBitmap = ImageDecoder.decodeBitmap(
-                    ImageDecoder.createSource(contentResolver, photoUri)
-                ).copy(Bitmap.Config.RGB_565, true)
+                result.data?.data?.let {
+                    val bitmap = imageProcessor.createBitmap(it)
+                    currentImage.setImageBitmap(bitmap)
+                }
             }
         }
 
@@ -48,6 +47,7 @@ class MainActivity : AppCompatActivity() {
         //do not change this line
         currentBitmap = createBitmap()
         currentImage.setImageBitmap(currentBitmap)
+        imageProcessor = ImageProcessor(this, currentBitmap)
 
         pickImageBtn.setOnClickListener {
             pickImage()
@@ -73,7 +73,14 @@ class MainActivity : AppCompatActivity() {
         }
 
         brightnessSl.addOnChangeListener { _, value, _ ->
-            redrawPicture(currentBitmap, value.toInt())
+            val createdBitmap = imageProcessor.changeBrightness(value.toInt())
+            currentImage.setImageBitmap(createdBitmap)
+        }
+
+        contrastSl.addOnChangeListener { _, value, _ ->
+            val createdBitmap = imageProcessor.changeContrast(value.toInt())
+            currentImage.setImageBitmap(createdBitmap)
+
         }
     }
 
@@ -82,6 +89,7 @@ class MainActivity : AppCompatActivity() {
         pickImageBtn = findViewById(R.id.btnGallery)
         saveImageBtn = findViewById(R.id.btnSave)
         brightnessSl = findViewById(R.id.slBrightness)
+        contrastSl = findViewById(R.id.slContrast)
     }
 
     private fun limitToRgb(color: Int, value: Int): Int {
@@ -94,28 +102,6 @@ class MainActivity : AppCompatActivity() {
         val pickImageIntent =
             Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
         activityResultLauncher.launch(pickImageIntent)
-    }
-
-    private fun redrawPicture(pictureToRedraw: Bitmap, brightnessChange: Int) {
-        val height = pictureToRedraw.height
-        val width = pictureToRedraw.width
-        val editedImage = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-//        val limitColorToRgbRange = { color: Int, value: Int -> (color + value).coerceIn(0..255) }
-        @ColorInt val pixels = IntArray(height * width)
-
-        //brightness = R+G+B/3, simply add or subtract the same amount from each RGB color.
-        pictureToRedraw.getPixels(pixels, 0, width, 0, 0, width, height)
-        pixels.indices.forEach {
-//            val red = limitColorToRgbRange(Color.red(pixels[it]), brightnessChange)
-//            val green = limitColorToRgbRange(Color.green(pixels[it]), brightnessChange)
-//            val blue = limitColorToRgbRange(Color.blue(pixels[it]), brightnessChange)
-            val red = limitToRgb(Color.red(pixels[it]), brightnessChange)
-            val green = limitToRgb(Color.green(pixels[it]), brightnessChange)
-            val blue = limitToRgb(Color.blue(pixels[it]), brightnessChange)
-            pixels[it] = Color.rgb(red, green, blue)
-        }
-        editedImage.setPixels(pixels, 0, width, 0, 0, width, height)
-        currentImage.setImageBitmap(editedImage)
     }
 
     private fun saveToStorage() {
@@ -135,7 +121,8 @@ class MainActivity : AppCompatActivity() {
         contentResolver.openOutputStream(uri).use {
             bitmap.compress(Bitmap.CompressFormat.JPEG, 100, it)
         }
-        Toast.makeText(this, "IMG_$timestamp.jpg saved to device storage", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "IMG_$timestamp.jpg saved to device storage", Toast.LENGTH_SHORT)
+            .show()
     }
 
     override fun onRequestPermissionsResult(
