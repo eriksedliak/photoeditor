@@ -54,22 +54,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         saveImageBtn.setOnClickListener {
-            when {
-                ContextCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE
-                ) ==
-                        PackageManager.PERMISSION_GRANTED -> {
-                    saveToStorage()
-                }
-
-                else -> {
-                    ActivityCompat.requestPermissions(
-                        this,
-                        arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), 0
-                    )
-                }
-            }
+            saveImage()
         }
 
         brightnessSl.addOnChangeListener { _, value, _ ->
@@ -92,16 +77,29 @@ class MainActivity : AppCompatActivity() {
         contrastSl = findViewById(R.id.slContrast)
     }
 
-    private fun limitToRgb(color: Int, value: Int): Int {
-        return if (color + value < 0) 0
-        else if (color + value > 255) 255
-        else color + value
-    }
-
     private fun pickImage() {
         val pickImageIntent =
             Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
         activityResultLauncher.launch(pickImageIntent)
+    }
+
+    private fun saveImage() {
+        when {
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
+            ) ==
+                    PackageManager.PERMISSION_GRANTED -> {
+                saveToStorage()
+            }
+
+            else -> {
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), 0
+                )
+            }
+        }
     }
 
     private fun saveToStorage() {
