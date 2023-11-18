@@ -4,6 +4,10 @@
     <string name="saveImage">Save</string>
     <string name="brightness_slider">Brightness</string>
     <string name="contrast_slider">Contrast</string>
+    <string name="saturation_slider">Saturation</string>
+    <string name="gamma_slider">Gamma</string>
     <string name="brightness_slider_label">brightness</string>
     <string name="contrast_slider_label">contrast</string>
+    <string name="saturation_slider_label">saturation</string>
+    <string name="gamma_slider_label">gamma</string>
 </resources>

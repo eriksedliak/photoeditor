@@ -90,4 +90,49 @@
         app:layout_constraintBottom_toBottomOf="@id/slContrast"
         app:layout_constraintTop_toTopOf="@+id/slContrast" />
 
+    <com.google.android.material.slider.Slider
+        android:id="@+id/slSaturation"
+        android:layout_height="wrap_content"
+        android:layout_width="0dp"
+        android:contentDescription="@string/saturation_slider"
+        android:stepSize="10"
+        android:value="0"
+        android:valueFrom="-250"
+        android:valueTo="250"
+        app:layout_constraintEnd_toEndOf="@+id/slContrast"
+        app:layout_constraintStart_toStartOf="@+id/slContrast"
+        app:layout_constraintTop_toBottomOf="@+id/slContrast"
+        app:layout_constraintLeft_creator="@android:integer/config_longAnimTime"/>
+
+    <TextView
+        android:id="@+id/saLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/saturation_slider_label"
+        app:layout_constraintStart_toStartOf="@+id/coLabel"
+        app:layout_constraintBottom_toBottomOf="@id/slSaturation"
+        app:layout_constraintTop_toTopOf="@+id/slSaturation" />
+
+    <com.google.android.material.slider.Slider
+        android:id="@+id/slGamma"
+        android:layout_height="wrap_content"
+        android:layout_width="0dp"
+        android:contentDescription="@string/gamma_slider"
+        android:stepSize="0.2"
+        android:value="1"
+        android:valueFrom="0.2"
+        android:valueTo="4"
+        app:layout_constraintEnd_toEndOf="@+id/slSaturation"
+        app:layout_constraintStart_toStartOf="@+id/slSaturation"
+        app:layout_constraintTop_toBottomOf="@+id/slSaturation"
+        app:layout_constraintLeft_creator="@android:integer/config_longAnimTime"/>
+
+    <TextView
+        android:id="@+id/gaLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/gamma_slider_label"
+        app:layout_constraintStart_toStartOf="@+id/saLabel"
+        app:layout_constraintBottom_toBottomOf="@id/slGamma"
+        app:layout_constraintTop_toTopOf="@+id/slGamma" />
 </androidx.constraintlayout.widget.ConstraintLayout>
