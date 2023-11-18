@@ -26,6 +26,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var saveImageBtn: Button
     private lateinit var brightnessSl: Slider
     private lateinit var contrastSl: Slider
+    private lateinit var saturationSl: Slider
+    private lateinit var gammaSl: Slider
     private lateinit var currentBitmap: Bitmap
     private lateinit var imageProcessor: ImageProcessor
 
@@ -65,7 +67,16 @@ class MainActivity : AppCompatActivity() {
         contrastSl.addOnChangeListener { _, value, _ ->
             val createdBitmap = imageProcessor.changeContrast(value.toInt())
             currentImage.setImageBitmap(createdBitmap)
+        }
 
+        saturationSl.addOnChangeListener {_, value, _->
+            val createdBitmap = imageProcessor.changeSaturation(value.toInt())
+            currentImage.setImageBitmap(createdBitmap)
+        }
+
+        gammaSl.addOnChangeListener { _, value, _ ->
+            val createdBitmap = imageProcessor.changeGamma(value.toDouble())
+            currentImage.setImageBitmap(createdBitmap)
         }
     }
 
@@ -75,6 +86,8 @@ class MainActivity : AppCompatActivity() {
         saveImageBtn = findViewById(R.id.btnSave)
         brightnessSl = findViewById(R.id.slBrightness)
         contrastSl = findViewById(R.id.slContrast)
+        saturationSl = findViewById(R.id.slSaturation)
+        gammaSl = findViewById(R.id.slGamma)
     }
 
     private fun pickImage() {

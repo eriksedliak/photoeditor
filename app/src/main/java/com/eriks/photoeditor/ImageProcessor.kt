@@ -10,6 +10,7 @@ import androidx.core.graphics.blue
 import androidx.core.graphics.green
 import androidx.core.graphics.red
 import java.io.IOException
+import kotlin.math.pow
 
 class ImageProcessor(private val context: Context, private var loadedImage: Bitmap) {
 
@@ -25,6 +26,16 @@ class ImageProcessor(private val context: Context, private var loadedImage: Bitm
         return redrawPicture(slidersState)
     }
 
+    fun changeGamma(gammaChange: Double): Bitmap {
+        slidersState.gamma = gammaChange
+        return redrawPicture(slidersState)
+    }
+
+    fun changeSaturation(saturationChange: Int): Bitmap {
+        slidersState.saturation = saturationChange
+        return redrawPicture(slidersState)
+    }
+
     fun createBitmap(uri: Uri): Bitmap {
         loadedImage = BitmapFactory
             .decodeStream(context.contentResolver.openInputStream(uri))
@@ -32,6 +43,8 @@ class ImageProcessor(private val context: Context, private var loadedImage: Bitm
         return loadedImage
     }
 
+    private fun calculateAlpha(valueChange: Int) =
+        (255 + valueChange.toDouble()) / (255 - valueChange)
     private fun limitToRgb(color: Int): Int {
         return if (color < 0) 0
         else if (color > 255) 255
@@ -41,11 +54,7 @@ class ImageProcessor(private val context: Context, private var loadedImage: Bitm
     /** brightness = R+G+B/3, brightness is changed by adding or subtracting the same amount from each RGB color.
      */
     private fun modifyBrightness(pixels: IntArray, brightnessChange: Int) {
-//        val limitColorToRgbRange = { color: Int, value: Int -> (color + value).coerceIn(0..255) }
         pixels.indices.forEach {
-//            val red = limitColorToRgbRange(Color.red(pixels[it]), brightnessChange)
-//            val green = limitColorToRgbRange(Color.green(pixels[it]), brightnessChange)
-//            val blue = limitColorToRgbRange(Color.blue(pixels[it]), brightnessChange)
             val red = limitToRgb(Color.red(pixels[it]) + brightnessChange)
             val green = limitToRgb(Color.green(pixels[it]) + brightnessChange)
             val blue = limitToRgb(Color.blue(pixels[it]) + brightnessChange)
@@ -60,7 +69,7 @@ class ImageProcessor(private val context: Context, private var loadedImage: Bitm
      *  totalBrightness = R + G + B for every pixel
      */
     private fun modifyContrast(pixels: IntArray, contrastChange: Int, width: Int, height: Int) {
-        val alpha: Double = (255 + contrastChange.toDouble()) / (255 - contrastChange)
+        val alpha = calculateAlpha(contrastChange)
         var totalBrightness: Long = 0
         pixels.forEach {
             totalBrightness += (it.red + it.blue + it.green)
@@ -76,6 +85,36 @@ class ImageProcessor(private val context: Context, private var loadedImage: Bitm
             pixels[it] = Color.rgb(red, green, blue)
         }
     }
+    /** Gamma modified Red = 255∗(Red÷255)^gammaChange */
+    private fun modifyGamma(pixels: IntArray, gammaChange: Double) {
+        pixels.indices.forEach {
+            val red = (255 * ((pixels[it].red.toDouble() / 255).pow(gammaChange))).toInt()
+            val green = (255 * ((pixels[it].green.toDouble() / 255).pow(gammaChange))).toInt()
+            val blue = (255 * ((pixels[it].blue.toDouble() / 255).pow(gammaChange))).toInt()
+            pixels[it] = Color.rgb(red, green, blue)
+        }
+    }
+
+    /** Saturation modified Red = (alpha×(Red−rgbAvg))+rgbAvg
+    where
+    alpha = (255−saturationChange)(255+saturationChange)
+    rgbAvg = (Red+Green+Blue)/3 average RGB value for each pixel
+    */
+    private fun modifySaturation(pixels: IntArray, saturationChange: Int) {
+        val alpha = calculateAlpha(saturationChange)
+        pixels.indices.forEach {
+            val red = pixels[it].red
+            val green = pixels[it].green
+            val blue = pixels[it].blue
+
+            val rgbAvg = (red + green + blue) / 3
+
+            val newRed = limitToRgb(((alpha * (red - rgbAvg)) + rgbAvg).toInt())
+            val newGreen = limitToRgb(((alpha * (green - rgbAvg)) + rgbAvg).toInt())
+            val newBlue = limitToRgb(((alpha * (blue - rgbAvg)) + rgbAvg).toInt())
+            pixels[it] = Color.rgb(newRed, newGreen, newBlue)
+        }
+    }
 
     private fun redrawPicture(sliders: SlidersState): Bitmap {
         val height = loadedImage.height
@@ -86,9 +125,17 @@ class ImageProcessor(private val context: Context, private var loadedImage: Bitm
         loadedImage.getPixels(pixels, 0, width, 0, 0, width, height)
         modifyBrightness(pixels, sliders.brightness)
         modifyContrast(pixels, sliders.contrast, width, height)
+        modifySaturation(pixels, sliders.saturation)
+        modifyGamma(pixels, sliders.gamma)
+
         editedImage.setPixels(pixels, 0, width, 0, 0, width, height)
         return editedImage
     }
 }
 
-class SlidersState(var brightness: Int = 0, var contrast: Int = 0)
+class SlidersState(
+    var brightness: Int = 0,
+    var contrast: Int = 0,
+    var saturation: Int = 0,
+    var gamma: Double = 1.0
+)
