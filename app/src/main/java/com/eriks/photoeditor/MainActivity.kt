@@ -137,7 +137,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun saveImage() {
         when {
-            ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) ==
+            ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES) ==
                     PackageManager.PERMISSION_GRANTED -> {
                 saveToStorage()
             }
