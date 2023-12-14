@@ -2,6 +2,7 @@ package com.eriks.photoeditor
 
 import android.Manifest
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.ContentValues
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -49,6 +50,12 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+
+    private val cameraRequestPermissionLauncher =
+        registerForActivityResult(
+            ActivityResultContracts.RequestPermission(),
+            ::onRequestCameraPermissionResult
+        )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -118,25 +125,43 @@ class MainActivity : AppCompatActivity() {
         activityResultLauncher.launch(pickImageIntent)
     }
 
+    private fun onRequestCameraPermissionResult(granted: Boolean) {
+        if (granted) {
+            saveToStorage()
+        } else {
+            AlertDialog.Builder(this)
+                .setTitle("Permission required")
+                .setMessage("This app needs permission to access this feature.")
+        }
+    }
+
     private fun saveImage() {
         when {
-            ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE
-            ) ==
+            ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) ==
                     PackageManager.PERMISSION_GRANTED -> {
                 saveToStorage()
             }
 
+            ActivityCompat.shouldShowRequestPermissionRationale(
+                this,
+                Manifest.permission.READ_MEDIA_IMAGES
+            ) -> {
+                AlertDialog.Builder(this)
+                    .setTitle("Permission required")
+                    .setMessage("This app needs media permission to save files to storage.")
+                    .setPositiveButton("Allow") { _, _ ->
+                        cameraRequestPermissionLauncher
+                            .launch(Manifest.permission.READ_MEDIA_IMAGES)
+                    }
+                    .setNegativeButton("Cancel", null)
+                    .show()
+            }
+
             else -> {
-                ActivityCompat.requestPermissions(
-                    this,
-                    arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), 0
-                )
+                cameraRequestPermissionLauncher.launch(Manifest.permission.READ_MEDIA_IMAGES)
             }
         }
     }
-
     private fun saveToStorage() {
         val bitmap: Bitmap = currentImage.drawable.toBitmap()
         val timestamp: Long = System.currentTimeMillis()
@@ -156,29 +181,6 @@ class MainActivity : AppCompatActivity() {
         }
         Toast.makeText(this, "IMG_$timestamp.jpg saved to device storage", Toast.LENGTH_SHORT)
             .show()
-    }
-
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        when (requestCode) {
-            0 -> {
-                if (grantResults.isNotEmpty() &&
-                    grantResults[0] == PackageManager.PERMISSION_GRANTED
-                ) {
-                    saveImageBtn.callOnClick()
-                } else {
-                    Toast.makeText(this, "Storage permission was declined", Toast.LENGTH_SHORT)
-                        .show()
-                }
-            }
-
-            else -> {
-                super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-            }
-        }
     }
 
     // do not change this function
