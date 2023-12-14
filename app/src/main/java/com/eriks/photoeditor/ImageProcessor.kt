@@ -9,22 +9,13 @@ import androidx.annotation.ColorInt
 import androidx.core.graphics.blue
 import androidx.core.graphics.green
 import androidx.core.graphics.red
-import com.google.android.material.slider.Slider
-import kotlinx.coroutines.Job
 import java.io.IOException
 import kotlin.math.pow
 
 class ImageProcessor(private val context: Context, private var loadedImage: Bitmap) {
 
-    private var slidersState = SlidersState()
 
-    fun onSliderChanges(slider: Slider, sliderValue: Float): Bitmap {
-        when (slider.id) {
-            R.id.slBrightness -> slidersState.brightness = sliderValue.toInt()
-            R.id.slContrast -> slidersState.contrast = sliderValue.toInt()
-            R.id.slSaturation -> slidersState.saturation = sliderValue.toInt()
-            R.id.slGamma -> slidersState.gamma = sliderValue.toDouble()
-        }
+    fun recalculate(slidersState: SlidersState): Bitmap {
 
         val pixelsToSet =
             loadImagePixels()

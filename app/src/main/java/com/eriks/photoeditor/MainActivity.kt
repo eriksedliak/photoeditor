@@ -18,8 +18,16 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
 import com.google.android.material.slider.Slider
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainActivity : AppCompatActivity() {
+
+    private var lastJob: Job? = null
 
     private lateinit var currentImage: ImageView
     private lateinit var pickImageBtn: Button
@@ -30,6 +38,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var gammaSl: Slider
     private lateinit var currentBitmap: Bitmap
     private lateinit var imageProcessor: ImageProcessor
+    private var slidersState = SlidersState()
 
     private val activityResultLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -60,23 +69,36 @@ class MainActivity : AppCompatActivity() {
         }
 
         brightnessSl.addOnChangeListener { brightnessSl, value, _ ->
-            val createdBitmap = imageProcessor.onSliderChanges(brightnessSl, value)
-            currentImage.setImageBitmap(createdBitmap)
+            onSliderChanges(brightnessSl, value)
         }
 
         contrastSl.addOnChangeListener { contrastSl, value, _ ->
-            val createdBitmap = imageProcessor.onSliderChanges(contrastSl, value)
-            currentImage.setImageBitmap(createdBitmap)
+            onSliderChanges(contrastSl, value)
         }
 
-        saturationSl.addOnChangeListener {saturationSl, value, _->
-            val createdBitmap = imageProcessor.onSliderChanges(saturationSl, value)
-            currentImage.setImageBitmap(createdBitmap)
+        saturationSl.addOnChangeListener { saturationSl, value, _ ->
+            onSliderChanges(saturationSl, value)
         }
 
         gammaSl.addOnChangeListener { gammaSl, value, _ ->
-            val createdBitmap = imageProcessor.onSliderChanges(gammaSl, value)
-            currentImage.setImageBitmap(createdBitmap)
+            onSliderChanges(gammaSl, value)
+        }
+    }
+
+    private fun onSliderChanges(slider: Slider, sliderValue: Float) {
+        when (slider.id) {
+            R.id.slBrightness -> slidersState.brightness = sliderValue.toInt()
+            R.id.slContrast -> slidersState.contrast = sliderValue.toInt()
+            R.id.slSaturation -> slidersState.saturation = sliderValue.toInt()
+            R.id.slGamma -> slidersState.gamma = sliderValue.toDouble()
+        }
+        lastJob?.cancel()
+        lastJob = CoroutineScope(Dispatchers.Default).launch {
+            currentImage.drawable ?: return@launch
+            val image = this.async { imageProcessor.recalculate(slidersState) }
+            withContext(Dispatchers.Main) {
+                currentImage.setImageBitmap(image.await())
+            }
         }
     }
 
