@@ -9,6 +9,8 @@ import androidx.annotation.ColorInt
 import androidx.core.graphics.blue
 import androidx.core.graphics.green
 import androidx.core.graphics.red
+import com.google.android.material.slider.Slider
+import kotlinx.coroutines.Job
 import java.io.IOException
 import kotlin.math.pow
 
@@ -16,25 +18,35 @@ class ImageProcessor(private val context: Context, private var loadedImage: Bitm
 
     private var slidersState = SlidersState()
 
-    fun changeBrightness(brightnessChange: Int): Bitmap {
-        slidersState.brightness = brightnessChange
-        return redrawPicture(slidersState)
+    fun onSliderChanges(slider: Slider, sliderValue: Float): Bitmap {
+        when (slider.id) {
+            R.id.slBrightness -> slidersState.brightness = sliderValue.toInt()
+            R.id.slContrast -> slidersState.contrast = sliderValue.toInt()
+            R.id.slSaturation -> slidersState.saturation = sliderValue.toInt()
+            R.id.slGamma -> slidersState.gamma = sliderValue.toDouble()
+        }
+
+        val pixelsToSet =
+            loadImagePixels()
+                .brightness(slidersState.brightness)
+                .contrast(slidersState.contrast)
+                .saturation(slidersState.saturation)
+                .gamma(slidersState.gamma)
+
+        val editedImage =
+            Bitmap.createBitmap(loadedImage.width, loadedImage.height, Bitmap.Config.ARGB_8888)
+        editedImage.setPixels(
+            pixelsToSet,
+            0,
+            loadedImage.width,
+            0,
+            0,
+            loadedImage.width,
+            loadedImage.height
+        )
+        return editedImage
     }
 
-    fun changeContrast(contrastChange: Int): Bitmap {
-        slidersState.contrast = contrastChange
-        return redrawPicture(slidersState)
-    }
-
-    fun changeGamma(gammaChange: Double): Bitmap {
-        slidersState.gamma = gammaChange
-        return redrawPicture(slidersState)
-    }
-
-    fun changeSaturation(saturationChange: Int): Bitmap {
-        slidersState.saturation = saturationChange
-        return redrawPicture(slidersState)
-    }
 
     fun createBitmap(uri: Uri): Bitmap {
         loadedImage = BitmapFactory
@@ -45,21 +57,31 @@ class ImageProcessor(private val context: Context, private var loadedImage: Bitm
 
     private fun calculateAlpha(valueChange: Int) =
         (255 + valueChange.toDouble()) / (255 - valueChange)
+
     private fun limitToRgb(color: Int): Int {
         return if (color < 0) 0
         else if (color > 255) 255
         else color
     }
 
+    private fun loadImagePixels(): IntArray {
+        val height = loadedImage.height
+        val width = loadedImage.width
+        @ColorInt val pixels = IntArray(height * width)
+        loadedImage.getPixels(pixels, 0, width, 0, 0, width, height)
+        return pixels
+    }
+
     /** brightness = R+G+B/3, brightness is changed by adding or subtracting the same amount from each RGB color.
      */
-    private fun modifyBrightness(pixels: IntArray, brightnessChange: Int) {
-        pixels.indices.forEach {
-            val red = limitToRgb(Color.red(pixels[it]) + brightnessChange)
-            val green = limitToRgb(Color.green(pixels[it]) + brightnessChange)
-            val blue = limitToRgb(Color.blue(pixels[it]) + brightnessChange)
-            pixels[it] = Color.rgb(red, green, blue)
+    private fun IntArray.brightness(brightnessChange: Int): IntArray {
+        this.indices.forEach {
+            val red = limitToRgb(Color.red(this[it]) + brightnessChange)
+            val green = limitToRgb(Color.green(this[it]) + brightnessChange)
+            val blue = limitToRgb(Color.blue(this[it]) + brightnessChange)
+            this[it] = Color.rgb(red, green, blue)
         }
+        return this
     }
 
     /** contrast adjusted R equals: alpha * (R - avgBrightness) + avgBrightness
@@ -68,68 +90,57 @@ class ImageProcessor(private val context: Context, private var loadedImage: Bitm
      *  avgBrightness = totalBrightness / all pixels * 3 (R,G,B)
      *  totalBrightness = R + G + B for every pixel
      */
-    private fun modifyContrast(pixels: IntArray, contrastChange: Int, width: Int, height: Int) {
-        val alpha = calculateAlpha(contrastChange)
+    private fun IntArray.contrast(contrastChange: Int): IntArray {
         var totalBrightness: Long = 0
-        pixels.forEach {
+        val alpha = calculateAlpha(contrastChange)
+        this.forEach {
             totalBrightness += (it.red + it.blue + it.green)
         }
-        val avgBrightness: Int = (totalBrightness / (width * height * 3)).toInt()
-        pixels.indices.forEach {
+        val avgBrightness: Int =
+            (totalBrightness / (loadedImage.width * loadedImage.height * 3)).toInt()
+        this.indices.forEach {
             val red =
-                limitToRgb(((alpha * (pixels[it].red - avgBrightness)) + avgBrightness).toInt())
+                limitToRgb(((alpha * (this[it].red - avgBrightness)) + avgBrightness).toInt())
             val green =
-                limitToRgb(((alpha * (pixels[it].green - avgBrightness)) + avgBrightness).toInt())
+                limitToRgb(((alpha * (this[it].green - avgBrightness)) + avgBrightness).toInt())
             val blue =
-                limitToRgb(((alpha * (pixels[it].blue - avgBrightness)) + avgBrightness).toInt())
-            pixels[it] = Color.rgb(red, green, blue)
+                limitToRgb(((alpha * (this[it].blue - avgBrightness)) + avgBrightness).toInt())
+            this[it] = Color.rgb(red, green, blue)
         }
+        return this
     }
+
     /** Gamma modified Red = 255∗(Red÷255)^gammaChange */
-    private fun modifyGamma(pixels: IntArray, gammaChange: Double) {
-        pixels.indices.forEach {
-            val red = (255 * ((pixels[it].red.toDouble() / 255).pow(gammaChange))).toInt()
-            val green = (255 * ((pixels[it].green.toDouble() / 255).pow(gammaChange))).toInt()
-            val blue = (255 * ((pixels[it].blue.toDouble() / 255).pow(gammaChange))).toInt()
-            pixels[it] = Color.rgb(red, green, blue)
+    private fun IntArray.gamma(gammaChange: Double): IntArray {
+        this.indices.forEach {
+            val red = (255 * ((this[it].red.toDouble() / 255).pow(gammaChange))).toInt()
+            val green = (255 * ((this[it].green.toDouble() / 255).pow(gammaChange))).toInt()
+            val blue = (255 * ((this[it].blue.toDouble() / 255).pow(gammaChange))).toInt()
+            this[it] = Color.rgb(red, green, blue)
         }
+        return this
     }
 
     /** Saturation modified Red = (alpha×(Red−rgbAvg))+rgbAvg
     where
     alpha = (255−saturationChange)(255+saturationChange)
     rgbAvg = (Red+Green+Blue)/3 average RGB value for each pixel
-    */
-    private fun modifySaturation(pixels: IntArray, saturationChange: Int) {
+     */
+    private fun IntArray.saturation(saturationChange: Int): IntArray {
         val alpha = calculateAlpha(saturationChange)
-        pixels.indices.forEach {
-            val red = pixels[it].red
-            val green = pixels[it].green
-            val blue = pixels[it].blue
+        this.indices.forEach {
+            val red = this[it].red
+            val green = this[it].green
+            val blue = this[it].blue
 
             val rgbAvg = (red + green + blue) / 3
 
             val newRed = limitToRgb(((alpha * (red - rgbAvg)) + rgbAvg).toInt())
             val newGreen = limitToRgb(((alpha * (green - rgbAvg)) + rgbAvg).toInt())
             val newBlue = limitToRgb(((alpha * (blue - rgbAvg)) + rgbAvg).toInt())
-            pixels[it] = Color.rgb(newRed, newGreen, newBlue)
+            this[it] = Color.rgb(newRed, newGreen, newBlue)
         }
-    }
-
-    private fun redrawPicture(sliders: SlidersState): Bitmap {
-        val height = loadedImage.height
-        val width = loadedImage.width
-        val editedImage = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-        @ColorInt val pixels = IntArray(height * width)
-
-        loadedImage.getPixels(pixels, 0, width, 0, 0, width, height)
-        modifyBrightness(pixels, sliders.brightness)
-        modifyContrast(pixels, sliders.contrast, width, height)
-        modifySaturation(pixels, sliders.saturation)
-        modifyGamma(pixels, sliders.gamma)
-
-        editedImage.setPixels(pixels, 0, width, 0, 0, width, height)
-        return editedImage
+        return this
     }
 }
 

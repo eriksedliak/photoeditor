@@ -59,23 +59,23 @@ class MainActivity : AppCompatActivity() {
             saveImage()
         }
 
-        brightnessSl.addOnChangeListener { _, value, _ ->
-            val createdBitmap = imageProcessor.changeBrightness(value.toInt())
+        brightnessSl.addOnChangeListener { brightnessSl, value, _ ->
+            val createdBitmap = imageProcessor.onSliderChanges(brightnessSl, value)
             currentImage.setImageBitmap(createdBitmap)
         }
 
-        contrastSl.addOnChangeListener { _, value, _ ->
-            val createdBitmap = imageProcessor.changeContrast(value.toInt())
+        contrastSl.addOnChangeListener { contrastSl, value, _ ->
+            val createdBitmap = imageProcessor.onSliderChanges(contrastSl, value)
             currentImage.setImageBitmap(createdBitmap)
         }
 
-        saturationSl.addOnChangeListener {_, value, _->
-            val createdBitmap = imageProcessor.changeSaturation(value.toInt())
+        saturationSl.addOnChangeListener {saturationSl, value, _->
+            val createdBitmap = imageProcessor.onSliderChanges(saturationSl, value)
             currentImage.setImageBitmap(createdBitmap)
         }
 
-        gammaSl.addOnChangeListener { _, value, _ ->
-            val createdBitmap = imageProcessor.changeGamma(value.toDouble())
+        gammaSl.addOnChangeListener { gammaSl, value, _ ->
+            val createdBitmap = imageProcessor.onSliderChanges(gammaSl, value)
             currentImage.setImageBitmap(createdBitmap)
         }
     }
